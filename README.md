@@ -1,7 +1,6 @@
 ### TOR Hidden Service Mapping - Command and Control Server ###
 
 Part of a project to find the hash from "3301's Liber Primus".<br>
-<br>
 1. Provides modified TOR source for HSDir drones (not included in this repository).<br>
 2. Accepts Hidden Service Descriptors and requests for Hidden Services that are handled by/pass through drones.<br>
 3. Calculates Hidden Service URLs from descriptors and matches SHA512 and Whirlpool fingerprint of FQDN and PQDN against the provided hash.<br>

@@ -21,7 +21,7 @@ There has been a lot of internal debate whether "page" as used by 3301 refers to
 <br>
 We came to the conclusion that "page" most likely refers to a binary file hosted on a TOR Hidden Service, and that we would not engage with binary content due to the moral and legal implications this would have.<br>
 <br>
-Rather we decided to grab banners and markup from Hidden Services and to deduce the existence of the "page" from clues within (prime numbers and alike within HTML comments as provided by 3301 in previous puzzles) the root page + 2 levels down.<br>
+Rather we agreed upon grabbing banners and markup from Hidden Services and trying to deduce the existence of the "page" from clues (prime numbers and alike within HTML comments as utilized by 3301 in previous puzzles) within the root page + 2 levels down.<br>
 <br>
 During our approximately 1 year running attempt to find the hash we collected about 300k unique Hidden Service URLs.<br>
 Many of them were not responding to our subsequent requests, and it is interesting to note that shortly after we deployed the first drones there was a massive uprise in Hidden Service numbers.<br>
@@ -40,7 +40,7 @@ We did not go unnoticed and most of our early drones were picked up. At no point
 <br>
 https://arstechnica.com/information-technology/2016/07/malicious-computers-caught-snooping-on-tor-anonymized-dark-web-sites/<br>
 <br>
-Since we figured none of our actions was time critical, and drones would lose their HSDir flag once they were picked up by the "honions" we simply increased the interval between mapping Hidden Services and grabbing banners/markup while deploying even more drones.<br>
+Since we figured none of our actions was time critical, and drones would lose their HSDir flag once they were picked up by the "honions" we simply increased the interval between mapping Hidden Services and grabbing banners/markup while consistently deploying more drones.<br>
 
 #### Result ####
 
@@ -48,9 +48,9 @@ As anticipated none of the ~300k gathered URLs matched the provided hash.<br>
 Looking for clues within the returned banners and markup proved to be quite laborious and did not result in any leads.<br>
 This does not imply there weren't any.
 
-#### Project Sonar ####
+#### Final thoughts ####
 
-There is a massive database of every box that is returning data on port 80 provided by Rapid 7.<br>
+There is a massive database (provided by Rapid 7) of every box that is returning data on port 80.<br>
 Data is available from 2013 up to now. Maybe the "page" can be found somewhere in there.<br>
 
 https://scans.io/study/sonar.http

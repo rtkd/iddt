@@ -1,0 +1,28 @@
+{
+  "name": "@3301/harbour",
+  "version": "0.0.1",
+  "description": "Provides API for storing data.",
+  "license": "ISC",
+  "main": "./js/index.js",
+  "scripts": {
+    "test": "echo \"Error: No test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "body-parser": "^1.15.2",
+    "crypto": "0.0.3",
+    "express": "^4.14.0",
+    "iftttmaker": "^1.2.1",
+    "irc": "^0.4.1",
+    "js-base64": "^2.1.9",
+    "jshashes": "^1.0.6",
+    "moment": "^2.17.1",
+    "mysql": "^2.12.0",
+    "node-rsa": "^0.3.4",
+    "underscore": "^1.8.3"
+  },
+  "private": true,
+  "keywords": [
+    "CodedWithWeezer™",
+    "AtMaxVolume™"
+  ]
+}

@@ -40,7 +40,7 @@ We did not go unnoticed and most of our early drones were picked up. At no point
 <br>
 https://arstechnica.com/information-technology/2016/07/malicious-computers-caught-snooping-on-tor-anonymized-dark-web-sites/<br>
 <br>
-Since we figured none of our actions was time critical, and drones would lose their HSDir flag once they were picked up by the "honions" we simply increased the interval between mapping Hidden Services and grabbing banners/markup while consistently deploying more drones.<br>
+Since we figured none of our actions was time critical, and drones would lose their HSDir flag once they were picked up by the "honions" we simply increased the interval between mapping Hidden Services and grabbing banners/markup while constantly deploying more drones.<br>
 
 #### Result ####
 

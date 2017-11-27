@@ -30,9 +30,9 @@ https://metrics.torproject.org/hidserv-dir-onions-seen.html?start=2016-02-01&end
 <br>
 Whether this was related to our doings or can be attributed to botnet activity, we don't know.<br>
 <br>
-All stages of the project followed a "fire and forget" policy. This sadly meant we didn't notice the server handling the requests for Hidden Services prior to passing them on to this server went offline shortly after being deployed, and thus we "lost" a number of possible targets.<br>
+All stages of the project followed a "fire and forget" policy. This sadly meant we didn't notice the server handling the requests for Hidden Services (prior to passing them on to this server) went offline shortly after being deployed, and thus we "lost" a number of possible targets.<br>
 <br>
-While collecting we had to find a workaround for servers deployed by Amirali Sanatinia and Guevara Noubir to specifically twat snooping nodes within the TOR network.<br>
+Coincidentally while gathering URLs we ran into a project by Amirali Sanatinia and Guevara Noubir who inserted "fake" Hidden Services into the network to specifically thwart snooping.<br>
 <br>
 https://www.securityweek2016.tu-darmstadt.de/fileadmin/user_upload/Group_securityweek2016/pets2016/10_honions-sanatinia.pdf<br>
 <br>

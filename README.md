@@ -1,13 +1,13 @@
 ### TOR Hidden Service Mapping - Command and Control Server ###
 
 Part of a project to find the hash from "3301's Liber Primus".<br>
-1. Provides modified TOR source for HSDir drones (not included in this repository).<br>
-2. Accepts Hidden Service Descriptors and requests for Hidden Services that are handled by/pass through drones.<br>
-3. Calculates Hidden Service URLs from descriptors and matches SHA512 and Whirlpool fingerprint of FQDN and PQDN against the provided hash.<br>
-4. Makes statistics available through an IRC bot and sends out alerts through IRC and IFTTT (SMS) if a match is found.<br>
-5. Provides an interface for dumping URLs for subsequent stages (service discovery, banner and markup grabbing and Elastic Search (not included in this repository)).<br>
+1. Provides modified TOR source for HSDir drones (not included in this repository).
+2. Accepts Hidden Service Descriptors and requests for Hidden Services that are handled by/pass through drones.
+3. Calculates Hidden Service URLs from descriptors and matches SHA512 and Whirlpool fingerprint of FQDN and PQDN against the known hash.
+4. Makes statistics available through an IRC bot and sends out alerts through IRC and IFTTT (SMS) if a match is found.
+5. Provides an interface to access URLs for subsequent stages of this project (service discovery, banner and markup grabbing and Elasticsearch (not included in this repository)).
 
-#### Entry point ####
+#### Task ####
 
 https://github.com/rtkd/iddqd/blob/master/liber-primus__images--full/73.jpg<br>
 <br>
@@ -17,11 +17,11 @@ AN  END. WITHIN  THE  DEEP  WEB,  THERE  EXISTS  A  PAGE  THAT  HASHES  TO 36367
 
 #### Note ####
 
-There has been a lot of internal debate whether "page" as mentioned by 3301 refers to an URL, the Hidden Service markup, or another page (binary file) from "Liber Primus". Also the clear distinction between "dark" and "deep" web (is the "dark" web part of the "deep" web, or are they separate entities?) was discussed frequently.<br>
+There has been a lot of internal debate whether "page" as used by 3301 refers to an URL, markup, or another page (binary file) from "Liber Primus". Also the distinction between "dark" and "deep" web (is the "dark" web part of the "deep" web, or are they separate entities?) was discussed frequently.<br>
 <br>
-We came to the conclusion that "page" most likely refers to a binary file hosted on a TOR Hidden Service, but we would not engage with binary content due to the moral and legal implications this would have.<br>
+We came to the conclusion that "page" most likely refers to a binary file hosted on a TOR Hidden Service, and that we would not engage with binary content due to the moral and legal implications this would have.<br>
 <br>
-Rather we decided to deduce the existence of the "page" from clues within the gathered markup (prime numbers and alike within HTML comments as provided by 3301 in previous puzzles) of the root page + 2 levels down.<br>
+Rather we decided to grab banners and markup from Hidden Services and to deduce the existence of the "page" from clues within (prime numbers and alike within HTML comments as provided by 3301 in previous puzzles) the root page + 2 levels down.<br>
 <br>
 During our approximately 1 year running attempt to find the hash we collected about 300k unique Hidden Service URLs.<br>
 Many of them were not responding to our subsequent requests, and it is interesting to note that shortly after we deployed the first drones there was a massive uprise in Hidden Service numbers.<br>

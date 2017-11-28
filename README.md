@@ -1,4 +1,4 @@
-### TOR Hidden Service Mapping - Command and Control Server ###
+### TOR Hidden Service Mapping - Control Server ###
 
 Part of a project to find the hash from "3301's Liber Primus".<br>
 1. Provides modified TOR source for HSDir drones (not included in this repository).

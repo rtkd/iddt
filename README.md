@@ -13,4 +13,5 @@ We discovered about 300k unique Hidden Services within one year.<br>
 Many were not responding to subsequent requests.<br>
 At no point in time did we interact with binary data or try to exploit found Hidden Services, nor do we condone deanonymization or hacking of Hidden Services or their owners/users.<br>
 None of the URLs matched the hash. There were no signs of 3301 within the colleced HTML.<br>
+<br>
 https://github.com/rtkd/idclip/blob/master/log/.log

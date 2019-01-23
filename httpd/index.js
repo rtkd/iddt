@@ -1,18 +1,23 @@
-const express = require('express');
 const bodyParser = require('body-parser');
+const express = require('express');
 const routes = require('./routes');
 const storeController = require('./controllers/store');
 
 const httpd = (() =>
 {
+	/**
+	 * The HTTPD instance.
+	 *
+	 * @type       {object}
+	 */
 	const server = express();
 
 	/**
-	 * Init server, routes and store controller.
+	 * Inits server, routes and store controller.
 	 *
-	 * @param      {<type>}  config  The configuration
-	 * @param      {<type>}  irc     The irc
-	 * @return     {<type>}  { description_of_the_return_value }
+	 * @param      {object}  config  The HTTPD configuration.
+	 * @param      {object}  irc     The IRC client instance.
+	 * @return     {}
 	 */
 	const init = (config, irc) =>
 	{
@@ -33,19 +38,16 @@ const httpd = (() =>
 	};
 
 	/**
-	 * Start server at <ip> <port>.
+	 * Start the server.
 	 *
-	 * @return     {<type>}  { description_of_the_return_value }
+	 * @return     {}
 	 */
 	const start = () =>
 	{
 		const hostname = server.get('hostname');
 		const port = server.get('port');
 
-		server.listen(port, () =>
-		{
-			console.log(`Listening on: http://${hostname}:${port}`);
-		});
+		server.listen(port, () => console.log(`Listening on: http://${hostname}:${port}`));
 	};
 
 	return { init, start };

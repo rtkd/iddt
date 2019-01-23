@@ -4,10 +4,10 @@ const serveRoutes = require('./serve');
 const routes = (() =>
 {
 	/**
-	 * Init routes.
+	 * Inits the HTTPD routes.
 	 *
-	 * @param      {<type>}  server  The server
-	 * @return     {<type>}  { description_of_the_return_value }
+	 * @param      {object}  server  The HTTPD instance.
+	 * @return     {}
 	 */
 	const init = server =>
 	{

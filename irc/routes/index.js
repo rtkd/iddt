@@ -7,8 +7,8 @@ const routes = (() =>
 	/**
 	 * Init routes and listener.
 	 *
-	 * @param      {<type>}  client  The client
-	 * @return     {<type>}  { description_of_the_return_value }
+	 * @param      {object}  client  The IRC client instance.
+	 * @return     {}
 	 */
 	const init = client =>
 	{

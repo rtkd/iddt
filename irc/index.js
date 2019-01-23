@@ -6,22 +6,22 @@ const bot = (() =>
 	/**
 	 * The IRC client.
 	 *
-	 * @type       {<type>}
+	 * @type       {object}
 	 */
 	let client;
 
 	/**
-	 * Get the IRC client.
+	 * Gets the IRC client.
 	 *
-	 * @return     {<type>}  The client.
+	 * @return     {object}  The IRC client instance.
 	 */
 	const getClient = () => client;
 
 	/**
 	 * Init IRC client and routes.
 	 *
-	 * @param      {<type>}  config  The configuration
-	 * @return     {<type>}  { description_of_the_return_value }
+	 * @param      {object}  config  The IRC configuration.
+	 * @return     {}
 	 */
 	const init = config =>
 	{

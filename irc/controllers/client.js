@@ -1,105 +1,159 @@
+const date = require('../../lib/date');
 const db = require('../../db');
 const moment = require('moment');
+const url = require('../../lib/url');
+const validate = require('../../lib/validate');
 
+/**
+ * The IRC client.
+ *
+ * @type       {object}
+ */
 let client;
 
+/**
+ * The IRC channel or username to reply to.
+ *
+ * @type       {string}
+ */
 let recipient;
 
-const isInteger = number => Number.isInteger(number) && number !== NaN;
-
-const isInterval = string => /^[1-9]\d{0,1}[smhdw]$/.test(string);
-
-const isDate = string => moment(string, 'DD.MM.YYYY', true).isValid();
-
-const isHSURL = string => /^\w{16}$/.test(string);
-
-const toISODate = date => date.toISOString().replace(/T/, ' ').replace(/\..+/, '');
-
-const forceInteger = string => parseInt(string.replace(/\D/g, ''));
-
+/**
+ * Queries the database.
+ *
+ * @param      {object}    db          The database instance.
+ * @param      {string}    query       The query string.
+ * @param      {array}     params      The query parameters.
+ * @param      {function}  resHandler  The result handler.
+ * @return     {}
+ */
 const query = (db, query, params, resHandler) => db.acquire(con => { con.query(query, params, resHandler); con.release(); });
 
+/**
+ * Workaround query failing when query placeholder at the end of query string.
+ */
 const queryIntervals = ['second', 'minute', 'hour', 'day', 'week'];
-
 const queryClientsActive = queryIntervals.reduce((obj, interval, i) => ({ ...obj, [interval.slice(0, 1)]: `select * from client where last > date_sub(now(), interval ? ${interval}) and last <= now() order by uri` }), { });
-
 const queryClientsInactive = queryIntervals.reduce((obj, interval, i) => ({ ...obj, [interval.slice(0, 1)]: `select * from client where last < date_sub(now(), interval ? ${interval}) order by uri` }), { });
 
-const replyMultiLine = (err, res) => { if (!res) return false; res.map(row => client.say(recipient, `IP: ${row.uri} // First: ${toISODate(row.first)} // Last: ${toISODate(row.last)} // Status: ${row.type} // Hits: ${row.hits}`)) };
-
-const listAll = (ircClient, to) =>
+/**
+ * Echos client data to IRC.
+ *
+ * @param      {object}   error   The query error.
+ * @param      {array}    result  The query result.
+ * @return     {boolean}  False if query did not return a result.
+ */
+const replyClient = (error, result) =>
 {
-	client = ircClient; recipient = to;
+	if (!result) return false;
 
-	query(db, 'select * from client', [], replyMultiLine);
+	result.map(row => client.say(recipient, `IP: ${row.uri} // First: ${date.toDateYearFirst(row.first)} // Last: ${date.toDateYearFirst(row.last)} // Status: ${row.type} // Hits: ${row.hits}`));
 };
 
-const listActive = (ircClient, to, modifier) =>
+/**
+ * Queries all clients.
+ *
+ * @param      {object}   irc     The IRC client instance.
+ * @param      {string}   to      The IRC message recipient.
+ * @return     {}
+ */
+const listAll = (irc, to) =>
 {
-	client = ircClient; recipient = to;
+	client = irc; recipient = to;
 
-	if (isInterval(modifier))
+	query(db, 'select * from client', [], replyClient);
+};
+
+/**
+ * Queries all active clients within interval or at date.
+ *
+ * @param      {object}   irc       The IRC client instance.
+ * @param      {string}   to        The IRC message recipient.
+ * @param      {string}   modifier  The interval or date to get clients for.
+ * @return     {boolean}  False if modifier is malformed.
+ */
+const listActive = (irc, to, modifier) =>
+{
+	client = irc; recipient = to;
+
+	if (validate.isInterval(modifier))
 	{
 		const quantity = modifier.slice(0, modifier.length - 1);
 
 		const interval = modifier.slice(-1);
 
-		query(db, queryClientsActive[interval], [quantity], replyMultiLine);
+		query(db, queryClientsActive[interval], [quantity], replyClient);
 	}
 
-	else if (isDate(modifier))
+	else if (validate.isDateDayFirst(modifier))
 	{
-		const dayStart = moment(`${modifier} 00:00:00`, 'DD-MM-YYYY hh:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+		const dayStart = moment(`${modifier} 00:00:00`, 'DD-MM-YYYY HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
 
-		const dayEnd = moment(`${modifier} 23:59:59`, 'DD-MM-YYYY hh:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+		const dayEnd = moment(`${modifier} 23:59:59`, 'DD-MM-YYYY HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
 
-		query(db, 'select * from client where first between ? and ? or last between ? and ? order by uri', [dayStart, dayEnd, dayStart, dayEnd], replyMultiLine);
+		query(db, 'select * from client where first between ? and ? or last between ? and ? order by uri', [dayStart, dayEnd, dayStart, dayEnd], replyClient);
 	}
+
+	else if (validate.isDateYearFirst(modifier))
+	{
+		const dayStart = moment(`${modifier} 00:00:00`, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+
+		const dayEnd = moment(`${modifier} 23:59:59`, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+
+		query(db, 'select * from client where first between ? and ? or last between ? and ? order by uri', [dayStart, dayEnd, dayStart, dayEnd], replyClient);
+	}
+
+	else return false;
 };
 
-const listInactive = (ircClient, to, modifier) =>
+/**
+ * Queries all inactive clients within interval or at date.
+ * TODO: build me.
+ *
+ * @param      {object}   irc       The IRC client instance.
+ * @param      {string}   to        The IRC message recipient.
+ * @param      {string}   modifier  The interval or date to get clients for.
+ * @return     {}
+ */
+const listInactive = (irc, to, modifier) => false;
+
+/**
+ * Queries client with status code x.
+ * 0 = not sending data, 1 = sending descriptors, 2 = sending URLs, 3 = sending both.
+ *
+ * @param      {object}   irc         The IRC client instance.
+ * @param      {string}   to          The IRC message recipient.
+ * @param      {string}   statusCode  The status code.
+ * @return     {boolean}  False if statusCode is not a defined status code.
+ */
+const listStatus = (irc, to, statusCode) =>
 {
-	client = ircClient; recipient = to;
+	client = irc; recipient = to;
 
-	if (isInterval(modifier))
-	{
-		const quantity = modifier.slice(0, modifier.length - 1);
-
-		const interval = modifier.slice(-1);
-
-		query(db, queryClientsInactive[interval], [quantity], replyMultiLine);
-	}
-
-	else if (isDate(modifier))
-	{
-		const dayStart = moment(`${modifier} 00:00:00`, 'DD-MM-YYYY hh:mm:ss').format('YYYY-MM-DD HH:mm:ss');
-
-		const dayEnd = moment(`${modifier} 23:59:59`, 'DD-MM-YYYY hh:mm:ss').format('YYYY-MM-DD HH:mm:ss');
-
-		//query(db, 'select * from client where first between ? and ? or last between ? and ? order by uri', [dayStart, dayEnd, dayStart, dayEnd], replyMultiLine);
-	}
-};
-
-const listStatus = (ircClient, to, modifier) =>
-{
-	client = ircClient; recipient = to;
-
-	const mod = forceInteger(modifier);
+	const mod = parseInt(statusCode);
 
 	if (![0, 1, 2, 3].includes(mod)) return false;
 
-	query(db, `select * from client where type=? order by uri`, [mod], replyMultiLine);
+	query(db, `select * from client where type=? order by uri`, [mod], replyClient);
 };
 
-const listTop = (ircClient, to, modifier) =>
+/**
+ * List the x most active clients.
+ *
+ * @param      {object}   irc      The IRC client instance.
+ * @param      {string}   to       The IRC message recipient.
+ * @param      {string}   topMost  The number of clients to list.
+ * @return     {boolean}  False if topMost is not an integer.
+ */
+const listTop = (irc, to, topMost) =>
 {
-	client = ircClient; recipient = to;
+	client = irc; recipient = to;
 
-	const mod = forceInteger(modifier);
+	if (!validate.isNumbersOnly(topMost)) return false;
 
-	if (!isInteger(mod)) return false;
+	const mod = parseInt(topMost);
 
-	query(db, 'select * from client order by hits desc limit 0,?', [mod], replyMultiLine);
+	query(db, 'select * from client order by hits desc limit 0,?', [mod], replyClient);
 };
 
 module.exports = { listAll, listActive, listInactive, listStatus, listTop };

@@ -2,23 +2,28 @@ const mySQL = require('mysql');
 
 const db = (() =>
 {
+	/**
+	 * The connection pool.
+	 *
+	 * @type       {object}
+	 */
 	let pool;
 
 	/**
-	 * Init the connection pool.
+	 * Inits the connection pool.
 	 *
-	 * @param      {<type>}  config  The configuration
-	 * @return     {<type>}  { description_of_the_return_value }
+	 * @param      {object}  config  The database configuration.
+	 * @return     {object}  The connection pool.
 	 */
 	const init = config => pool = mySQL.createPool(config);
 
 	/**
-	 * Get connection from pool.
+	 * Gets a connection from the pool.
 	 *
-	 * @param      {Function}  callback  The callback
-	 * @return     {<type>}    { description_of_the_return_value }
+	 * @param      {function}  callback  The function to call with the database connection.
+	 * @return     {}
 	 */
-	const acquire = callback => pool.getConnection((err, con) => { if (con) callback(con); });;
+	const acquire = callback => pool.getConnection((err, con) => { if (con) callback(con); });
 
 	return { init, acquire };
 })();

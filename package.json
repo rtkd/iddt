@@ -1,12 +1,14 @@
 {
   "name": "@3301/iddt",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "description": "Hidden Service URL collector.",
-  "main": "index.js",
-  "directories": {
-    "lib": "lib"
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/rtkd/iddt.git"
   },
+  "main": "index.js",
   "scripts": {
+    "start": "node ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

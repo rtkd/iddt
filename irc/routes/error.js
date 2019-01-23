@@ -1,10 +1,7 @@
-let ircClient;
+let client;
 
-const init = client => ircClient = client;
+const init = irc => client = irc;
 
-const router = (message) =>
-{
-	console.log(message);
-};
+const router = message => { console.log(message); };
 
 module.exports = { init, router };

@@ -1,139 +1,138 @@
-const cnfAuth = require('../../config').auth;
-const cnfIRC = require('../../config').irc;
+const config = require('../../config');
+const date = require('../../lib/date');
 const db = require('../../db');
 const url = require('../../lib/url');
-const moment = require('moment');
+const validate = require('../../lib/validate');
+const cnfAuth = config.auth;
+const cnfIRC = config.irc;
 
 /**
  * The IRC client.
  *
- * @type       {<type>}
+ * @type       {object}
  */
 let client;
 
 /**
- * Init the IRC client.
+ * The current date and time.
  *
- * @param      {<type>}  irc     The irc
- * @return     {<type>}  { description_of_the_return_value }
+ * @type       {<type>}
+ */
+let now;
+
+/**
+ * Inits the IRC client.
+ *
+ * @param      {object}  irc     The IRC client instance.
+ * @return     {}
  */
 const init = irc => client = irc;
 
 /**
- * Gets now.
+ * Builds Hidden Service domain name from Hidden Service descriptor.
  *
- * @return     {<type>}  The now.
+ * @param      {string}          descriptor  The base64 encoded descriptor.
+ * @return     {(string|false)}  The Hidden Service domain name, False otherwise.
  */
-const getNow = () => moment().format('YYYY:MM:DD HH:mm:ss');
+const urlFromDescriptor = descriptor =>
+{
+	const desc = Buffer.from(descriptor, 'base64').toString('utf8');
+
+	return (desc.includes('DESCRIPTOR') && desc.includes('END DESCRIPTOR')) ? url.from(desc) : false;
+};
 
 /**
- * Checks if client is authorized to store data.
+ * Queries the database.
  *
- * @param      {<type>}   key     The key
- * @return     {boolean}  True if authed, False otherwise.
- */
-const isAuthed = key => Object.values(cnfAuth.apiKeys).includes(key);
-
-/**
- * Determines if string is a Hidden Service URL.
- *
- * @param      {<type>}   string  The string
- * @return     {boolean}  True if hsurl, False otherwise.
- */
-const isHSURL = string => /^[a-z0-9]{16}$/.test(string);
-
-/**
- * Queries the DB.
- *
- * @param      {<type>}    db          The database
- * @param      {Function}  query       The query
- * @param      {<type>}    params      The parameters
- * @param      {<type>}    resHandler  The resource handler
- * @return     {<type>}    { description_of_the_return_value }
+ * @param      {object}    db          The database instance.
+ * @param      {string}    query       The query string,
+ * @param      {array}     params      The query parameters.
+ * @param      {function}  resHandler  The result handler.
+ * @return     {}
  */
 const query = (db, query, params, resHandler) => db.acquire(con => { con.query(query, params, resHandler); con.release(); });
 
 /**
- * Stores a packet.
+ * Updates the client database table.
+ * TODO: client status/type is not implemented as intended.
  *
- * @param      {<type>}           request  The request
- * @param      {number}           result   The result
- * @return     {(Array|boolean)}  { description_of_the_return_value }
+ * @param      {object}  error   The query error.
+ * @param      {array}   result  The query result.
+ * @return     {}
  */
-const storePacket = (request, result) =>
+const handleClient = (error, result) =>
 {
-	if (!isAuthed(request.body.user)) { result.end('0\n'); return false; }
+	// New client?
+	if (result.length === 0) query(db, 'insert into client set ?', { 'uri': clientIP, 'first': now, 'last': now, 'type': 1, 'hits': 1 }, () => { });
 
-	const now = getNow();
+	// Existing client?
+	else if (result.length === 1)
+	{
+		const id = result[0].id;
+		const type = result[0].type === 2 ? 3 : result[0].type;
+		const hits = result[0].hits + 1;
+
+		query(db, 'update client set ? where id=?', [{ 'last': now, 'type': type, 'hits': hits }, id], () => { });
+	}
+};
+
+/**
+ * Updates the service database table.
+ * TODO: client status/type is not implemented as intended.
+ *
+ * @param      {object}  error   The query error.
+ * @param      {array}   result  The query result.
+ * @return     {}
+ */
+const handleService = (error, result) =>
+{
+	// New Hidden Service?
+	if (result.length === 0) query(db, 'insert into service set ?', { 'uri': hsURL, 'first': now, 'last': now, 'type': 1, 'hits': 1 }, () => { });
+
+	// Existing Hidden Service?
+	else if (result.length === 1)
+	{
+		const id = result[0].id;
+		const type = result[0].type === 2 ? 3 : result[0].type;
+		const hits = result[0].hits + 1;
+
+		query(db, 'update service set ? where id=?', [{ 'last': now, 'type': type, 'hits': hits }, id], () => { });
+	}
+};
+
+/**
+ * Stores data send by client.
+ *
+ * @param      {object}  request   The HTTPD request.
+ * @param      {object}  response  The HTTPD response.
+ * @return     {}
+ */
+const storePacket = (request, response) =>
+{
+	// If the client is not authorized to store data, end the connection.
+	if (!validate.isAuthedAPI(request.body.user)) { response.end('0\n'); return false; }
+
+	now = date.getNowYearFirst();
 	const clientIP = request.ip;
 	const clientData = request.body.data;
 
-	/**
-	 * Builds HS URL from HS descriptor
-	 *
-	 * @param      {<type>}  b64     The b 64
-	 * @return     {Array}   { description_of_the_return_value }
-	 */
-	const urlFromDescriptor = b64 =>
-	{
-		const descriptor = Buffer.from(b64, 'base64').toString('utf8');
+	// Did we get a domain name or a descriptor?
+	const hsURL = validate.isHSURL(clientData) ? clientData : urlFromDescriptor(clientData);
 
-		return (descriptor.includes('DESCRIPTOR') && descriptor.includes('END DESCRIPTOR')) ? url.from(descriptor) : false;
-	}
+	// If we do not have a domain name at this point, inform the client and end the connection.
+	if (!hsURL) { response.end('malformed descriptor or url\n'); return false; }
 
-	const hsURL = isHSURL(clientData) ? clientData : urlFromDescriptor(clientData);
-
-	if (!hsURL) { result.end('malformed descriptor or url\n'); return false; }
-
+	// If domain name matches our hash, inform the IRC main channel.
 	if (url.test(hsURL)) client.say(cnfIRC.mainchannel, `Hash found ${hsURL}`);
 
-	/**
-	 * Updates the client data.
-	 *
-	 * @param      {<type>}  error   The error
-	 * @param      {number}  result  The result
-	 * @return     {<type>}  { description_of_the_return_value }
-	 */
-	const handleClient = (error, result) =>
-	{
-		if (result.length === 0) query(db, 'insert into client set ?', { 'uri': clientIP, 'first': now, 'last': now, 'type': 1, 'hits': 1 }, () => { });
-
-		else if (result.length === 1)
-		{
-			const id = result[0].id;
-			const type = result[0].type === 2 ? 3 : result[0].type;
-			const hits = result[0].hits + 1;
-
-			query(db, 'update client set ? where id=?', [{ 'last': now, 'type': type, 'hits': hits }, id], () => { });
-		}
-	};
-
-	/**
-	 * Updates the service data.
-	 *
-	 * @param      {<type>}  error   The error
-	 * @param      {number}  result  The result
-	 * @return     {<type>}  { description_of_the_return_value }
-	 */
-	const handleService = (error, result) =>
-	{
-		if (result.length === 0) query(db, 'insert into service set ?', { 'uri': hsURL, 'first': now, 'last': now, 'type': 1, 'hits': 1 }, () => { });
-
-		else if (result.length === 1)
-		{
-			const id = result[0].id;
-			const type = result[0].type === 2 ? 3 : result[0].type;
-			const hits = result[0].hits + 1;
-
-			query(db, 'update service set ? where id=?', [{ 'last': now, 'type': type, 'hits': hits }, id], () => { });
-		}
-	};
-
+	// Update the client data.
 	query(db, 'select id, type, hits from client where uri=?', [clientIP], handleClient);
 
+	// Update the Hidden Service data.
 	query(db, 'select id, type, hits from service where uri=?', [hsURL], handleService);
 
-	result.end('ok\n');
+	// Inform client about getting the request and end the connection.
+	response.end('ok\n');
 };
 
 module.exports = { init, storePacket };

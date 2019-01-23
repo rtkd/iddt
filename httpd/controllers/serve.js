@@ -1,10 +1,10 @@
 /**
  * Serve the client for auto install.
  *
- * @param      {<type>}  req     The request
- * @param      {<type>}  res     The resource
- * @return     {<type>}  { description_of_the_return_value }
+ * @param      {object}  request   The HTTPD request.
+ * @param      {object}  response  The HTTPD response.
+ * @return     {}
  */
-const client = (req, res) => res.download('./client/client.tar.gz');
+const client = (request, response) => response.download('./client/client.tar.gz');
 
 module.exports = { client };

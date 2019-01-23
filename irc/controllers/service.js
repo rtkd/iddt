@@ -1,80 +1,153 @@
+const date = require('../../lib/date');
 const db = require('../../db');
 const moment = require('moment');
+const validate = require('../../lib/validate');
 
+/**
+ * The IRC client.
+ *
+ * @type       {object}
+ */
 let client;
 
+/**
+ * The IRC channel or username to reply to.
+ *
+ * @type       {string}
+ */
 let recipient;
 
-const isInteger = number => Number.isInteger(number) && number !== NaN;
-
-const isInterval = string => /^[1-9]\d{0,1}[smhdw]$/.test(string);
-
-const isDate = string => moment(string, 'DD.MM.YYYY', true).isValid(); //const isDate = string => /^[1-9]\d{0,1}\.[1-9]\d{0,1}$/.test(string);
-
-const isHSURL = string => /^\w{16}$/.test(string);
-
-const toISODate = date => date.toISOString().replace(/T/, ' ').replace(/\..+/, '');
-
-const forceInteger = string => parseInt(string.replace(/\D/g, ''));
-
+/**
+ * Queries the database.
+ *
+ * @param      {object}    db          The database instance.
+ * @param      {string}    query       The query string.
+ * @param      {array}     params      The query parameters.
+ * @param      {function}  resHandler  The result handler.
+ * @return     {}
+ */
 const query = (db, query, params, resHandler) => db.acquire(con => { con.query(query, params, resHandler); con.release(); });
 
+/**
+ * Workaround query failing when query placeholder at the end of query string.
+ */
 const queryIntervals = ['second', 'minute', 'hour', 'day', 'week'];
-
 const queryServiceActive = queryIntervals.reduce((obj, interval, i) => ({ ...obj, [interval.slice(0, 1)]: `select * from service where last > date_sub(now(), interval ? ${interval}) and last <= now() order by uri asc` }), { });
 
-const queryServiceInactive = queryIntervals.reduce((obj, interval, i) => ({ ...obj, [interval.slice(0, 1)]: `select * from service where last < date_sub(now(), interval ? ${interval}) order by uri asc` }), { });
-
-const replyMultiLine = (err, res) => { if (!res) return false; res.map(row => client.say(recipient, `IP: ${row.uri} // Status: ${row.type} // First: ${toISODate(row.first)} // Last: ${toISODate(row.last)} // Hits: ${row.hits}`)) };
-
-const replyNumber = (err, res) => client.say(recipient, res[0].rows);
-
-const countAll = (ircClient, to) =>
+/**
+ * Echos Hidden Service data to IRC.
+ *
+ * @param      {object}   error   The query error.
+ * @param      {array}    result  The query result.
+ * @return     {boolean}  False if query did not return a result.
+ */
+const replyService = (error, result) =>
 {
-	client = ircClient; recipient = to;
+	if (!result) return false;
 
-	query(db, 'select count(id) as rows from service', [], replyNumber);
+	result.map(row => client.say(recipient, `IP: ${row.uri} // Status: ${row.type} // First: ${date.toDateYearFirst(row.first)} // Last: ${date.toDateYearFirst(row.last)} // Hits: ${row.hits}`));
 };
 
-const listAll = (ircClient, to) =>
+/**
+ * Echos a amount of affected Hidden Services to IRC.
+ *
+ * @param      {object}   error   The query error.
+ * @param      {array}    result  The query result.
+ * @return     {boolean}  False if query did not return a result.
+ */
+const replyAffected = (error, result) =>
 {
-	client = ircClient; recipient = to;
+	if (!result) return false;
 
-	query(db, 'select * from service order by uri asc limit 0,?', [10], replyMultiLine);
+	client.say(recipient, result[0].rows); };
+
+/**
+ * Queries the amount of seen Hidden Services.
+ *
+ * @param      {object}  irc     The IRC client instance.
+ * @param      {string}  to      The IRC message recipient.
+ * @return     {}
+ */
+const countAll = (irc, to) =>
+{
+	client = irc; recipient = to;
+
+	query(db, 'select count(id) as rows from service', [], replyAffected);
 };
 
-const listInterval = (ircClient, to, modifier) =>
+/**
+ * Queries all seen Hidden Services.
+ *
+ * @param      {object}  irc     The IRC client instance.
+ * @param      {string}  to      The IRC message recipient.
+ * @return     {}
+ */
+const listAll = (irc, to) =>
 {
-	client = ircClient; recipient = to;
+	client = irc; recipient = to;
 
-	if (isInterval(modifier))
+	query(db, 'select * from service order by uri asc limit 0,?', [10], replyService);
+};
+
+/**
+ * Queries seen Hidden Services within interval or at date.
+ *
+ * @param      {object}  irc       The IRC client instance.
+ * @param      {string}  to        The IRC message recipient.
+ * @param      {string}  modifier  The interval or date to get seen Hidden Services.
+ * @return     {}
+ */
+const listInterval = (irc, to, modifier) =>
+{
+	client = irc; recipient = to;
+
+	if (validate.isInterval(modifier))
 	{
 		const quantity = modifier.slice(0, modifier.length - 1);
 
 		const interval = modifier.slice(-1);
 
-		query(db, queryServiceActive[interval], [quantity], replyMultiLine);
+		query(db, queryServiceActive[interval], [quantity], replyService);
 	}
 
-	else if (isDate(modifier))
+	else if (validate.isDateDayFirst(modifier))
 	{
-		const dayStart = moment(`${modifier} 00:00:00`, 'DD-MM-YYYY hh:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+		const dayStart = moment(`${modifier} 00:00:00`, 'DD-MM-YYYY HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
 
-		const dayEnd = moment(`${modifier} 23:59:59`, 'DD-MM-YYYY hh:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+		const dayEnd = moment(`${modifier} 23:59:59`, 'DD-MM-YYYY HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
 
-		query(db, 'select * from service where (first between ? and ?) or (last between ? and ?) order by uri asc', [dayStart, dayEnd, dayStart, dayEnd], replyMultiLine);
+		query(db, 'select * from service where first between ? and ? or last between ? and ? order by uri asc', [dayStart, dayEnd, dayStart, dayEnd], replyService);
 	}
+
+	else if (validate.isDateYearFirst(modifier))
+	{
+		const dayStart = moment(`${modifier} 00:00:00`, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+
+		const dayEnd = moment(`${modifier} 23:59:59`, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+
+		query(db, 'select * from service where first between ? and ? or last between ? and ? order by uri', [dayStart, dayEnd, dayStart, dayEnd], replyService);
+	}
+
+	else return false;
 };
 
-const listTop = (ircClient, to, modifier) =>
+/**
+ * List the x most seen Hidden Services.
+ *
+ * @param      {object}   irc      The IRC client instance.
+ * @param      {string}   to       The IRC message recipient.
+ * @param      {string}   topMost  The number of Hidden Services to list.
+ * @return     {boolean}  False if topMost is not an integer.
+ */
+const listTop = (irc, to, modifier) =>
 {
-	client = ircClient; recipient = to;
+	client = irc; recipient = to;
 
-	const mod = forceInteger(modifier);
+	if (!validate.isNumbersOnly(topMost)) return false;
 
-	if (!isInteger(mod)) return false;
+	const mod = parseInt(topMost);
 
-	query(db, 'select * from service order by hits desc limit 0,?', [mod], replyMultiLine);
+	query(db, 'select * from service order by hits desc limit 0,?', [mod], replyService);
 };
 
 module.exports = { countAll, listAll, listInterval, listTop };

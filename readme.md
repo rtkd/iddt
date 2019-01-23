@@ -9,7 +9,7 @@ Clone and run the repository to start the server and IRC client.
 ```bash
 $ git clone https://github.com/rtkd/iddt .
 $ npm install
-$ node ./
+$ npm start
 ```
 
 #### Available HTTPD routes ####
